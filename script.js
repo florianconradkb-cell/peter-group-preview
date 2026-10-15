@@ -75,20 +75,45 @@ const heroSlides = [
   { src: "Sanit%C3%A4r/c75319_7720968736a143b39aa88ffbd366b284~mv2.jpg", alt: "Dämmarbeiten an einer Anlage" },
   { src: "Sanit%C3%A4r/c75319_b3e08d470eb7471e8ba86a7a28168b44~mv2.jpg", alt: "Isolierte technische Gebäudeinstallation" },
 ];
+const heroImages = [heroImage];
+for (const slide of heroSlides.slice(1)) {
+  const image = document.createElement("img");
+  image.className = "hero-image";
+  image.src = slide.src;
+  image.alt = slide.alt;
+  image.decoding = "async";
+  heroImages.at(-1).after(image);
+  heroImages.push(image);
+}
+
 let activeSlide = 0;
+let slideTimer;
 
 function showSlide(index) {
-  activeSlide = (index + heroSlides.length) % heroSlides.length;
-  heroImage.src = heroSlides[activeSlide].src;
-  heroImage.alt = heroSlides[activeSlide].alt;
+  activeSlide = (index + heroImages.length) % heroImages.length;
+  heroImages.forEach((image, imageIndex) => {
+    const isActive = imageIndex === activeSlide;
+    image.classList.toggle("is-active", isActive);
+    image.setAttribute("aria-hidden", String(!isActive));
+  });
 }
 
-document.querySelector("#hero-previous").addEventListener("click", () => showSlide(activeSlide - 1));
-document.querySelector("#hero-next").addEventListener("click", () => showSlide(activeSlide + 1));
-
-if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  window.setInterval(() => showSlide(activeSlide + 1), 6000);
+function restartSlideTimer() {
+  window.clearInterval(slideTimer);
+  slideTimer = window.setInterval(() => showSlide(activeSlide + 1), 4000);
 }
+
+document.querySelector("#hero-previous").addEventListener("click", () => {
+  showSlide(activeSlide - 1);
+  restartSlideTimer();
+});
+document.querySelector("#hero-next").addEventListener("click", () => {
+  showSlide(activeSlide + 1);
+  restartSlideTimer();
+});
+
+showSlide(0);
+restartSlideTimer();
 
 const referenceViewport = document.querySelector("#reference-viewport");
 const referenceTrack = document.querySelector(".reference-track");
@@ -97,7 +122,10 @@ const referenceSlides = [...document.querySelectorAll(".reference-slide")];
 function moveReferences(direction) {
   const slideWidth = referenceSlides[0].getBoundingClientRect().width;
   const gap = Number.parseFloat(getComputedStyle(referenceTrack).columnGap) || 0;
-  referenceViewport.scrollBy({ left: direction * (slideWidth + gap), behavior: "smooth" });
+  const step = slideWidth + gap;
+  const lastIndex = Math.round((referenceViewport.scrollWidth - referenceViewport.clientWidth) / step);
+  const nextIndex = Math.min(Math.max(Math.round(referenceViewport.scrollLeft / step) + direction, 0), lastIndex);
+  referenceViewport.scrollTo({ left: nextIndex * step, behavior: "smooth" });
 }
 
 document.querySelector("#references-previous").addEventListener("click", () => moveReferences(-1));
